@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang='en-US'>
+  <head>
+    <meta charset='utf-8'/>
+    <title>Password Strength Tester</title>
+    <link rel='stylesheet' type='text/css' href='css/bulma-0.7.4/css/bulma.min.css'/>
+    <link rel='stylesheet' type='text/css' href='css/font-awesome-4.7.0/css/font-awesome.min.css'/>
+  </head>
+
+  <body>
+    <section class='section'>
+      <div class='container'>
+        <div class='tile is-ancestor'>
+          <div class='tile is-vertical'>
+            <div class='tile'>
+              <div class='tile is-parent'>
+                <article class='tile is-child'>
+                  <div class='card'>
+                    <div class='card-content'>
+                      <div class='field'>
+                        <label for='password' class='label'>
+                          <i class='fa fa-fw fa-check-circle-o'></i>
+                          Test Password
+                        </label>
+
+                        <input
+                          id='password'
+                          type='password'
+                          class='input is-medium'
+                          title='Enter password.'
+                          placeholder='Enter password'
+                        />
+
+                        <p class='help'>
+                          Type a password to test in the field above.
+                        </p><!-- help -->
+                      </div><!-- field -->
+
+                      <div class='field'>
+                        <label
+                          for='show-password'
+                          class='checkbox'
+                          title='Show password text.'
+                        >
+                          <input
+                            id='show-password'
+                            type='checkbox'
+                            title='Show password text.'
+                          />
+
+                          Show password text
+                        </label>
+                      </div><!-- field -->
+                    </div><!-- card-content -->
+                  </div><!-- card -->
+                </article><!-- tile.is-child -->
+              </div><!-- tile.is-parent -->
+            </div><!-- tile -->
+
+            <div id='results-wrap' class='tile is-parent is-vertical'>
+              <article class='tile is-child box is-info'>
+                <div class='content'>
+                  <p class='title'>
+                    Password Strength:
+                    <span id='strength'></span>
+                  </p>
+
+                  <progress
+                    id='score'
+                    class='progress is-success'
+                    title='Estimated password strength.'
+                    value='0'
+                    max='100'
+                  >0%</progress>
+
+                  <p class='subtitle'>
+                    <b>
+                      Number of Guesses:
+                    </b>
+
+                    10<sup id='guesses-log10'>0</sup>
+                    <span id='guesses' style='display: none'></span>
+                    <br/>
+
+                    <span class='help'>
+                      Estimated number of attempts needed to guess this
+                      password.
+                    </span>
+                  </p>
+
+                </div><!-- content -->
+              </article><!-- tile.is-child -->
+
+              <article
+                id='warning-wrap'
+                class='tile is-child notification is-danger'
+              >
+                <div class='content'>
+                  <p class='title'>
+                    Warning
+                  </p><!-- title -->
+
+                  <p id='warning' class='subtitle'>
+                  </p><!-- subtitle -->
+                </div><!-- content -->
+              </article><!-- tile.is-child -->
+
+              <article
+                id='suggestions-wrap'
+                class='tile is-child notification is-warning'
+              >
+                <div class='content'>
+                  <p class='title'>
+                    Suggestions
+                  </p><!-- title -->
+
+                  <ul id='suggestions'>
+                  </ul>
+                </div><!-- content -->
+              </article><!-- tile.is-child -->
+
+              <article id='details' class='tile is-child box'>
+                <div class='tabs'>
+                  <ul>
+                    <li 
+                      class='is-active'
+                      title='View estimated crack times.'
+                      data-id='tab-details-times'
+                    >
+                      <a>
+                        <i class='fa fa-fw fa-clock-o'></i>
+                        Crack Times
+                      </a>
+                    </li>
+
+                    <li 
+                      title='View test details.'
+                      data-id='tab-details-tests'
+                    >
+                      <a>
+                        <i class='fa fa-fw fa-cubes'></i>
+                        Test Details
+                      </a>
+                    </li>
+                  </ul>
+                </div><!-- tabs -->
+
+                <div id='tab-details-times' class='content'>
+                  <table class='table is-hoverable is-fullwidth'>
+                    <thead>
+                      <tr>
+                        <th>Attack Type</th>
+                        <th>Crack Time</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      <tr title='Online attack on a service that rate-limits password authentication attempts.'>
+                        <td>Online/Throttling</td>
+                        <td>
+                          <i id='icon-online-slow' class='fa fa-fw'></i>
+                          <span id='time-online-slow'></span>
+                        </td>
+                      </tr>
+
+                      <tr title='Online attack on a service that doesn&apos;t rate-limit, or where an attacker has outsmarted rate-limiting.'>
+                        <td>Online/No Throttling</td>
+                        <td>
+                          <i id='icon-online-fast' class='fa fa-fw'></i>
+                          <span id='time-online-fast'></span>
+                        </td>
+                      </tr>
+
+                      <tr title='Offline attack. Assumes multiple attackers, proper user-unique salting, and a slow hash function with moderate work factor, such as bcrypt, scrypt, or PBKDF2.'>
+                        <td>Offline/Slow</td>
+                        <td>
+                          <i id='icon-offline-slow' class='fa fa-fw'></i>
+                          <span id='time-offline-slow'></span>
+                        </td>
+                      </tr>
+
+                      <tr title='Offline attack with user-unique salting but a fast hash function like SHA-1, SHA-256, or MD5. A wide range of reasonable numbers anywhere from one billion to one trillion guesses per second, depending on number of cores and machines,  and ballparking at 10B/sec.'>
+                        <td>Offline/Fast</td>
+                        <td>
+                          <i id='icon-offline-fast' class='fa fa-fw'></i>
+                          <span id='time-offline-fast'></span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div><!-- content -->
+
+                <div id='tab-details-tests' class='content is-hidden'>
+                  <table class='table is-hoverable is-fullwidth'>
+                    <thead>
+                      <tr>
+                        <th>Pattern</th>
+                        <th>Number of Guesses</th>
+                      </tr>
+                    </thead>
+
+                    <tbody id='tests'>
+                    </tbody>
+                  </table><!-- table -->
+                </div><!-- content -->
+              </article><!-- tile.is-child -->
+            </div><!-- tile -->
+
+            <div id='empty-password-wrap' class='tile is-parent is-vertical'>
+              <article class='tile is-child box'>
+                <div class='content'>
+                  <p>
+                    This section of the page will display test results
+                    once you enter a password in the text field above.
+                  </p>
+                </div><!-- content -->
+              </article><!-- tile.is-child -->
+            </div><!-- tile.is-parent -->
+          </div><!-- tile.is-vertical -->
+
+          <div class='tile is-parent is-vertical'>
+            <article id='help' class='tile is-child box'>
+              <div class='tabs'>
+                <ul>
+                  <li 
+                    class='is-active'
+                    title='Show help tab.'
+                    data-id='tab-help-help'
+                  >
+                    <a>
+                      <i class='fa fa-fw fa-question-circle-o'></i> 
+                      Help
+                    </a>
+                  </li>
+
+                  <li 
+                    title='Show about tab.'
+                    data-id='tab-help-about'
+                  >
+                    <a>
+                      <i class='fa fa-fw fa-info-circle'></i> 
+                      About
+                    </a>
+                  </li>
+
+                  <li 
+                    title='Show license tab.'
+                    data-id='tab-help-license'
+                  >
+                    <a>
+                      <i class='fa fa-fw fa-gavel'></i> 
+                      License
+                    </a>
+                  </li>
+                </ul>
+              </div><!-- tabs -->
+
+              <div id='tab-help-help' class='content'>
+                <p>
+                  This tool allows you to test the strength of
+                  passwords.
+                </p>
+                
+                <p>
+                  <b>Usage</b>
+                </p>
+                
+                <p>
+                  Type a password in the text field on the left, and the
+                  estimated password strength, suggestions, and
+                  estimated crack times will be shown below.
+                </p>
+
+                <p>
+                  <b>Crack Times</b>
+                </p>
+
+                <ul>
+                  <li>
+                    Online/Throttling: Online attack on a service that
+                    rate-limits password authentication attempts.
+                  </li>
+
+                  <li>
+                    Online/No Throttling: Online attack on a service
+                    that doesn't rate-limit, or where an attacker has
+                    outsmarted rate-limiting.
+                  </li>
+
+                  <li>
+                    Offline/Slow: Offline attack. Assumes multiple
+                    attackers, proper user-unique salting, and a slow
+                    <a
+                      href='https://en.wikipedia.org/wiki/Cryptographic_hash_function'
+                      title='Learn about cryptographic hash functions.'
+                    >hash function</a> with moderate work factor, such as
+                    <a
+                      href='https://en.wikipedia.org/wiki/Bcrypt'
+                      title='Learn about bcrypt.'
+                    >bcrypt</a>, <a
+                      href='https://en.wikipedia.org/wiki/Scrypt'
+                      title='Learn about scrypt.'
+                    >scrypt</a>, or <a
+                      href='https://en.wikipedia.org/wiki/PBKDF2'
+                      title='Learn about PBKDF2.'
+                    >PBKDF2</a>.
+                  </li>
+
+                  <li>
+                    Offline/Fast: Offline attack with user-unique
+                    salting but a fast hash function like <a
+                      href='https://en.wikipedia.org/wiki/SHA-1'
+                      title='Learn about SHA-1.'
+                    >SHA-1</a>, <a
+                      href='https://en.wikipedia.org/wiki/SHA-2'
+                      title='Learn about SHA-256.'
+                    >SHA-256</a>, or <a
+                      href='https://en.wikipedia.org/wiki/MD5'
+                      title='Learn about MD5.'
+                    >MD5</a>. A wide range of reasonable numbers
+                    anywhere from one billion to one trillion guesses
+                    per second, depending on number of cores and
+                    machines,  and ballparking at 10B/sec.
+                  </li>
+                </ul>
+              </div><!-- content -->
+
+              <div id='tab-help-about' class='content is-hidden'>
+                <p>
+                  Password strength tester.
+                </p>
+
+                <p>
+                  <b>Features</b>
+                </p>
+
+                <ul>
+                  <li>
+                    Simple.
+                  </li>
+
+                  <li>
+                    Open Source: <a 
+                      href='https://opensource.org/licenses/MIT'
+                      title='Learn about the MIT license.'
+                    >MIT-licensed</a>.
+                  </li>
+
+                  <li>
+                    Self-Contained: No external connections for assets,
+                    social media sites, analytics, etc.
+                  </li>
+                </ul>
+
+                <p>
+                  <b>Built With</b>
+                </p>
+                
+                <ul>
+                  <li>
+                    <a 
+                      href='https://github.com/dropbox/zxcvbn'
+                      title='Learn more about zxcvbn.'
+                    >
+                      zxcvbn
+                    </a>: Password strength estimator.
+                  </li>
+
+                  <li>
+                    <a
+                      href='https://bulma.io'
+                      title='Learn more about Bulma.'
+                    >
+                      Bulma
+                    </a>: Open source CSS framework.
+                  </li>
+
+                  <li>
+                    <a
+                      href='https://fontawesome.com/'
+                      title='Learn more about Font Awesome.'
+                    >
+                      Font Awesome
+                    </a>: Open source font icons.
+                  </li>
+                </ul>
+
+                <p>
+                  <b>Author</b>
+                </p>
+
+                <p>
+                  <a href='https://pablotron.org/'>Paul Duncan</a><br/>
+                  <a href='https://pablotron.org/'>https://pablotron.org/</a><br/>
+                  <a href='https://github.com/pablotron/'>https://github.com/pablotron</a>
+                </p>
+
+              </div><!-- content -->
+
+              <div id='tab-help-license' class='content is-hidden'>
+                <p>
+                  Copyright 2019 Paul Duncan
+                </p>
+
+                <p>
+                  Permission is hereby granted, free of charge, to any
+                  person obtaining a copy of this software and
+                  associated documentation files (the "Software"), to
+                  deal in the Software without restriction, including
+                  without limitation the rights to use, copy, modify,
+                  merge, publish, distribute, sublicense, and/or sell
+                  copies of the Software, and to permit persons to whom
+                  the Software is furnished to do so, subject to the
+                  following conditions:
+                </p>
+
+                <p>
+                  The above copyright notice and this permission notice
+                  shall be included in all copies or substantial
+                  portions of the Software.
+                </p>
+
+                <p>
+                  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+                  ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+                  LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+                  FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+                  EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+                  FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+                  AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+                  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+                  USE OR OTHER DEALINGS IN THE SOFTWARE.
+                </p>
+              </div><!-- content -->
+            </article><!-- tile.is-child -->
+          </div><!-- tile.is-parent -->
+        </div><!-- tile.is-ancestor -->
+      </div><!-- container -->
+    </section><!-- section -->
+
+    <script type='text/javascript' src='js/zxcvbn.js'></script>
+    <script type='text/javascript' src='js/ui.js'></script>
+  </body>
+</html>
+
